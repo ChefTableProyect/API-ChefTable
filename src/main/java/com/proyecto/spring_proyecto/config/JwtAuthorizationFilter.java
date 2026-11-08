@@ -1,11 +1,12 @@
 package com.proyecto.spring_proyecto.config;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import com.proyecto.spring_proyecto.application.interfaces.IJwtService;
@@ -41,13 +42,15 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
 
         try {
             if (!jwtService.isExpired(token)) {
-                String user = jwtService.parseClaims(token).getSubject();
+                var claims = jwtService.parseClaims(token);
+                String user = claims.getSubject();
+                String role = claims.get("role", String.class);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
-                        new ArrayList<>());
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            System.out.println("Token inválido o expirado: " + e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         chain.doFilter(request, response);

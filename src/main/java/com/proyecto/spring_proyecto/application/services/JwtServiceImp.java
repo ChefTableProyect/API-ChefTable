@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import com.proyecto.spring_proyecto.application.interfaces.IJwtService;
@@ -18,12 +17,14 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 
 @Service
-@ConfigurationProperties(prefix = "security.jwt")
 public class JwtServiceImp implements IJwtService {
-  /** Debe estar en Base64 (64+ bytes si usas HS512; con HS256 basta 32+ bytes) */
+    @Value("${security.jwt.secret}")
     private String secret;
+
     private Key key;
-    @Value("${ttl-seconds:1800}") private long expirationSeconds;
+
+    @Value("${security.jwt.ttl-seconds:1800}")
+    private long expirationSeconds;
 
     @PostConstruct
     void init() {
@@ -32,13 +33,14 @@ public class JwtServiceImp implements IJwtService {
     }
 
     @Override
-    public String generateToken(String username) {
+    public String generateToken(String username, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(username)
+                .claim("role", role)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(expirationSeconds)))
-                .signWith(key, SignatureAlgorithm.HS256) // Usa HS512 si tu clave es >=64 bytes reales
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -54,14 +56,6 @@ public class JwtServiceImp implements IJwtService {
     @Override
     public boolean isExpired(String token) {
         return parseClaims(token).getExpiration().before(new Date());
-    }
-
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
-
-    public void setTtlSeconds(long ttlSeconds) {
-        this.expirationSeconds = ttlSeconds;
     }
 
     @Override

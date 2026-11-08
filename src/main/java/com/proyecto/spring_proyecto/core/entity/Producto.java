@@ -1,5 +1,7 @@
 package com.proyecto.spring_proyecto.core.entity;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -25,7 +27,10 @@ public class Producto {
     private int cantidad;
 
     @Column(name = "pro_precio")
-    private double precio;
+    private BigDecimal precio;
+
+    @Column(name = "pro_active", nullable = false)
+    private boolean active = true;
 
     @ManyToOne
     @JoinColumn(name = "cat_id")
@@ -55,12 +60,20 @@ public class Producto {
         this.cantidad = cantidad;
     }
 
-    public double getPrecio() {
+    public BigDecimal getPrecio() {
         return precio;
     }
 
-    public void setPrecio(double precio) {
+    public void setPrecio(BigDecimal precio) {
         this.precio = precio;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public Categoria getCategoria() {

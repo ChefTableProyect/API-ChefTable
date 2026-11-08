@@ -24,12 +24,13 @@ public class UserServiceImp implements IUserService {
     }
 
     @Override
-    public Optional<String> authenticate(String address, String rawPassword) {
-        // System.out.println("RAW PASSWORD RECIBIDO: " + rawPassword);
-
+    public Optional<LoginResponse> authenticate(String address, String rawPassword) {
         return userDAO.findByAddress(address)
                 .filter(u -> passwordEncoder.matches(rawPassword, u.getPassword()))
-                .map(u -> jwtService.generateToken(u.getAddress()));
+                .map(u -> new LoginResponse(
+                        u.getAddress(),
+                        jwtService.generateToken(u.getAddress(), u.getRole().name()),
+                        u.getRole().name()));
     }
 
     @Override
@@ -37,7 +38,10 @@ public class UserServiceImp implements IUserService {
         var claims = jwtService.parseClaims(token);
         var address = claims.getSubject();
         return userDAO.findByAddress(address)
-                .map(u -> new LoginResponse(address, jwtService.generateToken(address)))
+                .map(u -> new LoginResponse(
+                        address,
+                        jwtService.generateToken(address, u.getRole().name()),
+                        u.getRole().name()))
                 .orElse(null);
     }
 

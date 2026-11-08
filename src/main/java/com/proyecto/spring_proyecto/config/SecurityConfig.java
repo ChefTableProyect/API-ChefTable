@@ -1,5 +1,6 @@
 package com.proyecto.spring_proyecto.config;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +17,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,8 +37,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // puedes ajustar strength
+    PasswordEncoder passwordEncoder(@Value("${security.password.bcrypt-strength:12}") int strength) {
+        return new BCryptPasswordEncoder(strength);
     }
 
       @Bean
@@ -51,15 +55,25 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                    .frameOptions(frame -> frame.deny())
+                    .contentTypeOptions(Customizer.withDefaults())
+                    .referrerPolicy(referrer -> referrer
+                            .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
+            .exceptionHandling(errors -> errors
+                    .authenticationEntryPoint(new HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED))
+                    .accessDeniedHandler(new AccessDeniedHandlerImpl()))
             .authorizeHttpRequests(auth -> auth
-
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
+                    .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/v1/orders").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/menu/**", "/api/v1/tables/**", "/api/v1/orders/*").permitAll()
+                    .requestMatchers("/api/v1/kitchen/**").hasAnyRole("KITCHEN", "ADMIN")
                     .requestMatchers(
-                            "/api/auth/login",
-                            "/api/auth/register"
-                    ).permitAll()
-
+                            "/api/v1/admin/**",
+                            "/api/productos/**",
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html").hasRole("ADMIN")
                     .anyRequest().authenticated()
             )
 
@@ -68,15 +82,19 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS en local (si llamas desde http://localhost:4200, p.ej.)
     @Bean
     CorsConfigurationSource corsConfigurationSource(
             @Value("${cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
         var cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(allowedOrigins));
+        cfg.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+        cfg.setAllowedHeaders(List.of("Content-Type", "Authorization", "Idempotency-Key"));
+        cfg.setExposedHeaders(List.of("Idempotency-Replayed"));
         cfg.setAllowCredentials(true);
+        cfg.setMaxAge(3600L);
         var src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", cfg);
         return src;
