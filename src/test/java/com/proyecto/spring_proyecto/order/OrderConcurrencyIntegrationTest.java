@@ -21,9 +21,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.proyecto.spring_proyecto.core.entity.OrderStatus;
 import com.proyecto.spring_proyecto.core.entity.Producto;
+import com.proyecto.spring_proyecto.core.entity.Categoria;
 import com.proyecto.spring_proyecto.order.dto.CreateOrderItemRequest;
 import com.proyecto.spring_proyecto.order.dto.CreateOrderRequest;
 import com.proyecto.spring_proyecto.repository.ICustomerOrderDAO;
+import com.proyecto.spring_proyecto.repository.ICategoriaDAO;
 import com.proyecto.spring_proyecto.repository.IProductoDAO;
 import com.proyecto.spring_proyecto.shared.ApiException;
 
@@ -56,10 +58,28 @@ class OrderConcurrencyIntegrationTest {
     @Autowired
     private IProductoDAO productRepository;
 
+    @Autowired
+    private ICategoriaDAO categoryRepository;
+
     @BeforeEach
     void cleanDatabase() {
         orderRepository.deleteAll();
         productRepository.deleteAll();
+        categoryRepository.deleteAll();
+    }
+
+    @Test
+    void categoryAuditFieldsAreGenerated() {
+        var category = new Categoria();
+        category.setNombre("Entradas");
+        category.setDescripcion("Platos para compartir");
+
+        var saved = categoryRepository.saveAndFlush(category);
+
+        assertThat(saved.getCreatedAt()).isNotNull();
+        assertThat(saved.getUpdatedAt()).isNotNull();
+        assertThat(saved.getCreatedBy()).isEqualTo("system");
+        assertThat(saved.getUpdatedBy()).isEqualTo("system");
     }
 
     @Test
