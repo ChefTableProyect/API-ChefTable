@@ -76,3 +76,9 @@ Con la API iniciada, la especificación y la interfaz de Swagger están disponib
 - En producción se requiere TLS, rate limiting externo y un gestor de secretos.
 
 Consulta [Concurrencia, idempotencia y seguridad](docs/CONCURRENCY_AND_SECURITY.md) para ver decisiones, escenarios y comandos de carga.
+
+
+
+Para compilar 
+
+./mvnw clean compile

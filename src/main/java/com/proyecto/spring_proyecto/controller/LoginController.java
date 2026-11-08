@@ -1,6 +1,5 @@
 package com.proyecto.spring_proyecto.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -13,6 +12,9 @@ import jakarta.validation.Valid;
 import com.proyecto.spring_proyecto.application.interfaces.IUserService;
 import com.proyecto.spring_proyecto.auth.dto.LoginRequest;
 import com.proyecto.spring_proyecto.auth.dto.LoginResponse;
+import com.proyecto.spring_proyecto.auth.dto.RegisterUserRequest;
+import com.proyecto.spring_proyecto.auth.dto.RegisterUserResponse;
+import com.proyecto.spring_proyecto.core.entity.User;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +32,12 @@ public class LoginController {
         return userService.authenticate(request.address(), request.password())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<RegisterUserResponse> register(@RequestBody RegisterUserRequest request) {
+        RegisterUserResponse userReponse = userService.save(request);
+        return ResponseEntity.ok(userReponse);
     }
 
 }
